@@ -1,0 +1,27 @@
+//Write an ECP to transmit 'A' serially through UART0 of LPC2129. Assue: Pclk=15Mhz, Baudrate=9600
+#include<LPC21XX.H>
+void UART_CONFIG(void);
+void UART_TX(unsigned char);
+int main()
+{
+	PINSEL0|=0x5;
+	UART_CONFIG();
+	while(1)
+	{
+	UART_TX('A');
+	UART_TX('\r');
+	UART_TX('\n');
+	}
+}
+void UART_CONFIG(void)
+{
+U0LCR=0x83;
+U0DLL=97;
+U0DLM=0;
+U0LCR=0x03;
+}
+void UART_TX(unsigned char ch)
+{
+U0THR=ch;
+while(((U0LSR>>5)&1)==0);
+}
