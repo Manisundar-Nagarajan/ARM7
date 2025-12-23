@@ -1,0 +1,126 @@
+//Digital Dice with History
+#include<LPC21XX.H>
+#define LCD 0xff
+#define RS 1<<8
+#define E 1<<9
+#define SW1 14
+#define SW2 15
+void delay_ms(int);
+void LCD_INIT(void);
+void LCD_CMD(unsigned char);
+void LCD_DATA(unsigned char);
+void LCD_STRING(unsigned char *);
+void CG_RAM(int);
+
+unsigned char digits[]={0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					   0x00, 0x00, 0x00, 0x06, 0x06, 0x00, 0x00, 0x00,
+					   0x00, 0x03, 0x03, 0x00, 0x00, 0x18, 0x18, 0x00,
+					   0x00, 0x1B, 0x1B, 0x00, 0x04, 0x04, 0x00, 0x00,
+					   0x00, 0x1B, 0x1B, 0x00, 0x00, 0x1B, 0x1B, 0x00,
+					   0x00, 0x1B, 0x1B, 0x04, 0x04, 0x1B, 0x1B, 0x00,
+					   0x1B, 0x1B, 0x00, 0x1B, 0x1B, 0x00, 0x1B, 0x1B};
+int main()
+ {
+ unsigned char H[10];
+ unsigned char i=0;
+   T1PR=5;
+   T1TCR=0x01;
+   LCD_INIT();
+   CG_RAM(48);
+   LCD_CMD(0x80);
+   LCD_STRING("DIGITAL DICE->");
+   LCD_CMD(0xc2);
+   LCD_STRING("H->");
+   
+   
+	while(1)
+	{
+	 if(((IOPIN0>>SW1)&1)==0)
+	 	{
+		    while(((IOPIN0>>SW1)&1)==0);
+			delay_ms(250);
+			T1TCR=0x00;
+
+			LCD_CMD(0x8f);
+			LCD_DATA(T1PC+1);
+
+			LCD_CMD(0xc0);
+			LCD_DATA(T1PC+48+1);
+			for(i=0;i<9;i++)
+			{
+			H[10-i-1]=H[10-i-2];
+			}
+			H[0]=T1PC+48+1;
+		}
+	else if(((IOPIN0>>SW2)&1)==0)
+	  {
+	   while(((IOPIN0>>SW1)&1)==0);
+			delay_ms(250);
+			LCD_CMD(0xc5);
+			for(i=0;i<10;i++)
+			{
+			LCD_DATA(H[i]);
+			}
+	  }
+	  else
+       T1TCR=0x01;
+
+	}
+ 	}
+void CG_RAM(int n)
+{
+	unsigned char count;
+	LCD_CMD(0x40);
+	for(count=0;count<n;count++)
+	LCD_DATA(digits[count]);
+}
+void delay_ms(int ms)
+{
+T0PR=15000-1;
+T0TCR=0x01;
+while(T0TC<ms);
+T0TCR=0x03;
+T0TCR=0x00;
+}
+void LCD_INIT(void)
+{
+IODIR0=LCD|RS|E;
+LCD_CMD(0x01);
+LCD_CMD(0x02);
+LCD_CMD(0x0c);
+LCD_CMD(0x38);
+}
+void LCD_CMD(unsigned char CMD)
+{
+IOCLR0=LCD;
+IOSET0=CMD;
+IOCLR0=RS;
+IOSET0=E;
+delay_ms(250);
+IOCLR0=E;
+}
+void LCD_DATA(unsigned char d)
+{
+IOCLR0=LCD;
+IOSET0=d;
+IOSET0=RS;
+IOSET0=E;
+delay_ms(250);
+IOCLR0=E;
+}
+void LCD_STRING(unsigned char *s)
+  {
+  while(*s)
+  LCD_DATA(*s++);
+  }
+void LCD_INTEGER(unsigned char d)
+{
+IOPIN0=d;
+IOSET0=RS;
+IOSET0=E;
+delay_ms(250);
+IOCLR0=E;
+}
+
+
+
