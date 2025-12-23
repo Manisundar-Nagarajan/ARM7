@@ -1,0 +1,40 @@
+// Write an ECP to receive the characters and re-transmit serially by converting to opposite case through UART0 of LPC2129. Assume Pclk=15Mhz, Baud rate=9600
+
+#include<LPC21XX.H>
+void UART_config(void);
+void UART_Tx(unsigned char);
+unsigned char UART_Rx(void);
+
+int main()
+	{
+	  unsigned char ch;
+  	PINSEL0|=0x5;
+		UART_config();
+		while(1)
+		{
+			ch=UART_Rx();
+			UART_Tx(ch);
+			ch^=32;
+			UART_Tx(ch);
+		}
+	}
+	
+	void UART_config(void)
+	{		
+				U0LCR=0x83;
+				U0DLL=97;
+				U0DLM=0;
+				U0LCR=0x03;
+	}
+	
+	void UART_Tx(unsigned char ch)
+	{
+		U0THR=ch;
+		while(((U0LSR>>5)&1)==0);
+	}
+	
+	unsigned char UART_Rx(void)
+	{
+		while((U0LSR&1)==0);
+		return U0RBR;
+	}
