@@ -1,6 +1,6 @@
 // Receive a string and re-transmit it to LCD and show it in LCD
 
-#include<stdio.h>
+#include<LPC21XX.H>
 #define LCD 0xff
 #define RS 10
 #define E 11
