@@ -1,5 +1,6 @@
 #include<LPC21XX.H>
 #include "LCD_header.h"
+#define SW 14
 void UART_config(void);
 void UART_Tx(unsigned char);
 unsigned char UART_Rx(void);
@@ -7,29 +8,65 @@ void UART_Str(unsigned char *);
 
 int main()
 	{
-	unsigned char ch;
+	  unsigned char s[5];
+		unsigned char n[30];
+		unsigned char i=0,ch;
+		static int j=0;
 		LCD_INIT();
 		LCD_CMD(0x80);
-		LCD_STRING("*WIRELESS NOTICE*");
+		LCD_STRING("WIRELESS NOTICE");
 	  PINSEL0|=0x5;
 	  UART_config();
 		
 	  while(1)
 	  {
-		if(UART_Rx()!='\r')
+				ch=UART_Rx();
+		if(ch>='0' && ch<='9')
 		{
-			ch=UART_Rx();
+			s[i++]=ch;
 		}
-		else
-		 {
-			LCD_CMD(0x01);
+		else if((ch>='A' && ch<='Z') || (ch>='a' && ch<='z'))
+			n[i++]=ch;
+		
+		else if(ch=='\r'||ch=='\n')
+		{ 	
+			if(i<=5)
+				s[i]='\0';
+			
+		    n[i]='\0';
+			i=0;	
+		}
+		if(j<1)
+		{
 			LCD_CMD(0xc0);
-			LCD_DATA(ch);
-			LCD_CMD(0xc2);
-			LCD_STRING("Goto Frnt desk");
-			UART_Tx(ch+48);
-		 }	
-	  }
+		  LCD_STRING(s);
+			j++;
+		}
+		  LCD_CMD(0xc3);
+		  LCD_STRING(n);
+		if(((IOPIN0>>SW)&1)==0)
+		{
+			while(((IOPIN0>>SW)&1)==0);
+			if(s[1]=='9')
+			{
+				s[0]=s[0]+48;
+				s[1]=0;
+			}
+			else if(s[0]=='9')
+			{
+				s[0]=1;
+				s[1]=0;
+				s[2]='\0';
+			}
+			else
+				s[1]=s[1]+48;
+		}
+				
+			UART_Str(s);
+		  LCD_CMD(0xc0);
+		  LCD_STRING(s);
+		
+		}
 	}
 	
 	void UART_config(void)
@@ -51,6 +88,14 @@ int main()
 		while((U0LSR&1)==0);
 		return U0RBR;
 	}
+	
+	void UART_Str(unsigned char *s)
+	{
+	while(*s)
+	UART_Tx(*s++);
+	}
+	
+
 
 /* LCD HEADER*/
 
