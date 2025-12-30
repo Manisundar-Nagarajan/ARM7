@@ -1,56 +1,68 @@
 #include<LPC21XX.H>
 #include "header.h"
-#define SW 13
+#define SW 16
 void UART_config(void);
 void UART_Tx(unsigned char);
 unsigned char UART_Rx(void);
 void UART_Str(unsigned char *);
 void UART0_TxInt(unsigned int);
+volatile unsigned char ch='0';
+
+void EXT_Int0(void) __irq
+{
+EXTINT=0x01;
+ch++;
+if(ch>'9')
+ch='0';
+VICVectAddr=0;
+}
 
 int main()
  	{
-	  volatile unsigned char ch='0';
+	  
       unsigned char n[30];
       unsigned char i=0,m=0;
 		LCD_INIT();
   		LCD_CMD(0x80);
  		LCD_STRING("WIRELESS NOTICE");
-	    PINSEL0|=0x5;
+	    PINSEL1|=0x01;
 	    UART_config();
-	  while(1)
-	  {
-	   if(((IOPIN0>>SW)&1)==0) 
-	   {
-		ch++;
-		if(ch>'9') 
-		ch='0';
-				  
-		while(((IOPIN0>>SW)&1)==0);
-	   }
+	    VICIntSelect=0;
+	    VICVectCnt0=(0x20)|14;
+	    VICVectAddr0=(unsigned long)EXT_Int0;
+		EXTMODE=0x01;
+		EXTPOLAR=0x00;
+	    VICIntEnable=1<<14;
+//	  while(1)
+//	  {
+//	   if(((IOPIN0>>SW)&1)==0) 
+//	   {
+//		ch++;
+//		if(ch>'9') 
+//		ch='0';
+//				  
+//		while(((IOPIN0>>SW)&1)==0);
+//	   }
 	   i=0;
-	   else
-	   {
 		while(1)
 		{
-		m=UART_Rx();
-		if(m=='\r' || m=='\n')
-		{
-			n[i]='\0';
-			break;
+			m=UART_Rx();
+			if(m=='\r' || m=='\n')
+			{
+				n[i]='\0';
+				break;
+			}
+			else
+			{
+				n[i++]=m;
+			}
+			UART_Tx(ch);
+			LCD_CMD(0xc0);
+			LCD_DATA(ch);
+			LCD_CMD(0xc2);
+			LCD_STRING(n);
 		}
-		else
-		{
-			n[i++]=m;
-		}
-		}
-		}
-		UART_Tx(ch);
-		LCD_CMD(0xc0);
-		LCD_DATA(ch);
-		LCD_CMD(0xc2);
-		LCD_STRING(n);
-		}
-	}
+}
 void UART_config(void)
 	{		
 		U0LCR=0x83;
