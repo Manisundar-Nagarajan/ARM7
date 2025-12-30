@@ -1,16 +1,17 @@
 #include<LPC21XX.H>
 #include "header.h"
-#define SW 14
+#define SW 13
 void UART_config(void);
 void UART_Tx(unsigned char);
 unsigned char UART_Rx(void);
 void UART_Str(unsigned char *);
+void UART0_TxInt(unsigned int);
 
 int main()
  	{
-	  volatile static unsigned char ch=0;
+	  volatile unsigned char ch='0';
       unsigned char n[30];
-      unsigned char i=0,m;
+      unsigned char i=0,m=0;
 		LCD_INIT();
   		LCD_CMD(0x80);
  		LCD_STRING("WIRELESS NOTICE");
@@ -18,37 +19,44 @@ int main()
 	    UART_config();
 	  while(1)
 	  {
-	   if(((IOPIN0>>SW)&1)==0)
+	   if(((IOPIN0>>SW)&1)==0) 
 	   {
-	    UART_Tx(++ch);
-		if(ch==99)
-		ch=0;
-		}
+		ch++;
+		if(ch>'9') 
+		ch='0';
+				  
+		while(((IOPIN0>>SW)&1)==0);
+	   }
+	   i=0;
+	   else
+	   {
 		while(1)
 		{
-		  m=UART_Rx();
-		  if(m=='\r' || m=='\n')
-		  {
-		    n[i]='\0';
+		m=UART_Rx();
+		if(m=='\r' || m=='\n')
+		{
+			n[i]='\0';
 			break;
-			}
-			else
-			{
+		}
+		else
+		{
 			n[i++]=m;
-			}
-	   	}
+		}
+		}
+		}
+		UART_Tx(ch);
 		LCD_CMD(0xc0);
 		LCD_DATA(ch);
 		LCD_CMD(0xc2);
 		LCD_STRING(n);
 		}
-		}
+	}
 void UART_config(void)
 	{		
-				U0LCR=0x83;
-				U0DLL=97;
-				U0DLM=0;
-				U0LCR=0x03;
+		U0LCR=0x83;
+		U0DLL=97;
+		U0DLM=0;
+		U0LCR=0x03;
 	}
 	
 void UART_Tx(unsigned char ch)
@@ -62,57 +70,3 @@ unsigned char UART_Rx(void)
 		while((U0LSR&1)==0);
 		return U0RBR;
 	}
-	
-
-
-/* LCD HEADER*/
-
-#include<LPC21XX.H>
-#define LCD 0xf
-#define RS 1<<7
-#define E 1<<8
-void LCD_INIT(void);
-void LCD_CMD(unsigned char);
-void LCD_DATA(unsigned char);
-void LCD_STRING(unsigned char *);
-void delay_ms(unsigned int ms);
-void LCD_INIT(void)
-	{
-	IODIR0=LCD|RS|E;
-	LCD_CMD(0x01);
-	LCD_CMD(0x02);
-	LCD_CMD(0x0c);
-	LCD_CMD(0x38);
-	}
-	void LCD_CMD(unsigned char CMD)
-	{
-	IOCLR0=(LCD<<3);
-	IOSET0=CMD;
-	IOCLR0=RS;
-	IOSET0=E;
-	delay_ms(250);
-	IOCLR0=E;
-	}
-	void LCD_DATA(unsigned char DATA)
-	{
-	IOCLR0=(LCD<<3);
-	IOSET0=DATA;
-	IOSET0=RS;
-	IOSET0=E;
-	delay_ms(250);
-	IOCLR0=E;
-	}
-	void delay_ms(unsigned int ms)
-	{
-	T0PR=15000-1;
-	T0TCR=0x01;
-	while(T0TC<ms);
-	T0TCR=0x03;
-	T0TCR=0x00;
-	}
-	void LCD_STRING(unsigned char *s)
-	{
-		while(*s)
-	LCD_DATA(*s++);
-	}
-	
