@@ -1,5 +1,5 @@
-//#include<stdlib.h>
-#include"lcd.h"
+#include"header.h"
+#define SW 2
 void uart0_config(void);
 void uart0_tx(unsigned char);
 unsigned char uart0_rx(void);
@@ -14,7 +14,7 @@ int main()
 {
  PINSEL0 |= 0x5;
  uart0_config();
- lcd_init(); 
+ LCD_INIT(); 
  VICIntSelect = 0;
  VICVectCntl1 = (0x20)|6;
  VICVectAddr1 = (unsigned long)uart0_isr;
@@ -23,21 +23,21 @@ int main()
  
  while(1)
  {
-   lcd_cmd(0x80);
-   lcd_string("*Digital Notice*");
+   LCD_CMD(0x80);
+   LCD_STRING("*Digital Notice*");
 
    if(a[i-1] == '\n')
    {
     a[i-2] = '\0';
 	i = 0;
 	uart0_str(a);
-	lcd_cmd(0xC0);
-	lcd_string(a);
+	LCD_CMD(0xC0);
+	LCD_STRING(a);
 	delay_ms(5000);
-	lcd_cmd(0x01);
+	LCD_CMD(0x01);
    }
  
-   if(((IOPIN0>>2)&1) == 0)
+   if(((IOPIN0>>SW)&1) == 0)
    {
     volatile static unsigned char a = 0;
 	a++;
@@ -54,7 +54,7 @@ int main()
 	if(a == 100)a = 0;
 	uart0_str("   MSG:");
 	uart0_tx(a%10+48);
-	while(((IOPIN0>>2)&1) == 0);
+	while(((IOPIN0>>SW)&1n) == 0);
    }	
  }
 }
@@ -100,4 +100,72 @@ void uart0_str(char *s)
   uart0_tx(*s++);
  }
 }
+
+/***********************LCD HEADER***********************/
+
+#include<lpc21xx.h>
+#define LCD 0xf<<4
+#define RS 1<<8
+#define E 1<<9
+void LCD_INIT(void);
+void LCD_CMD(unsigned char);
+void LCD_DATA(unsigned char);
+void LCD_STRING(unsigned char*);
+void delay_ms(unsigned int);
+void LCD_INIT(void)
+{	   
+IODIR0=LCD|RS|E;
+LCD_CMD(0x01);
+LCD_CMD(0x02);
+LCD_CMD(0x0c);
+LCD_CMD(0x28);
+}
+void LCD_CMD(unsigned char CMD)
+{
+IOCLR0 = LCD;
+IOSET0=(((CMD>>4)&0x0f)<<4);
+IOCLR0=RS;
+IOSET0=E;
+delay_ms(2);
+IOCLR0=E;
+
+IOCLR0 = LCD;
+IOSET0=((CMD&0x0f)<<4);
+IOCLR0=RS;
+IOSET0=E;
+delay_ms(2);
+IOCLR0=E;
+}
+void LCD_DATA(unsigned char d)
+{
+IOCLR0 = LCD;
+IOSET0=(((d>>4)&0x0f)<<4);
+IOSET0=RS;
+IOSET0=E;
+delay_ms(2);
+IOCLR0=E;
+
+IOCLR0 = LCD;
+IOSET0=((d&0x0f)<<4);
+IOSET0=RS;
+IOSET0=E;
+delay_ms(2);
+IOCLR0=E;
+}
+void LCD_STRING(unsigned char*s)
+{
+   while(*s)
+   {
+   LCD_DATA(*s++);
+   }
+}
+void delay_ms(unsigned int ms)
+	{
+	T0PR=15000-1;
+	T0TCR=0x01;
+	while(T0TC<ms);
+	T0TCR=0x03;
+	T0TCR=0x00;
+	}
+
 
